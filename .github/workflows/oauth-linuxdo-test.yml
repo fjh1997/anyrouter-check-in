@@ -47,7 +47,7 @@ jobs:
         env:
           ACCOUNTS: ${{ secrets.OAUTH_ACCOUNTS }}
           RUN_LINUXDO_LOGIN_MANUAL: 'true'
-          DEBUG: 'true'
+          DEBUG: 'false'
         shell: pwsh
         run: |
           uv run python -u main.py *>&1 | Tee-Object -FilePath oauth-test.log
