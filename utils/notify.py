@@ -40,7 +40,10 @@ class NotificationKit:
 		headers: dict[str, str] | None = None,
 	) -> httpx.Response:
 		with httpx.Client(timeout=30.0) as client:
-			response = client.post(url, json=data, headers=headers)
+			post_kwargs: dict[str, Any] = {'json': data}
+			if headers is not None:
+				post_kwargs['headers'] = headers
+			response = client.post(url, **post_kwargs)
 
 		if response.status_code >= 400:
 			raise RuntimeError(f'{service} request failed: HTTP {response.status_code}')
