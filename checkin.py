@@ -49,6 +49,13 @@ ACCOUNT_DELAY_MIN_SECONDS = 2 * 60
 ACCOUNT_DELAY_MAX_SECONDS = 8 * 60
 
 
+def env_bool(name: str, default: bool = False) -> bool:
+	value = os.getenv(name)
+	if value is None:
+		return default
+	return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 def random_delay_seconds(min_seconds: int, max_seconds: int) -> int:
 	"""生成随机等待秒数"""
 	if max_seconds <= 0:
@@ -543,6 +550,7 @@ async def main():
 	account_check_in_details = {}
 	need_notify = False
 	balance_changed = False
+	notify_on_balance_change = env_bool('NOTIFY_ON_BALANCE_CHANGE', True)
 
 	for i, account in enumerate(accounts):
 		account_key = f'account_{i + 1}'
@@ -617,16 +625,22 @@ async def main():
 	if current_balance_hash:
 		if last_balance_hash is None:
 			balance_changed = True
-			need_notify = True
-			print('[NOTIFY] First run detected, will send notification with current balances')
+			if notify_on_balance_change:
+				need_notify = True
+				print('[NOTIFY] First run detected, will send notification with current balances')
+			else:
+				print('[INFO] First run detected, balance-change notification disabled')
 		elif current_balance_hash != last_balance_hash:
 			balance_changed = True
-			need_notify = True
-			print('[NOTIFY] Balance changes detected, will send notification')
+			if notify_on_balance_change:
+				need_notify = True
+				print('[NOTIFY] Balance changes detected, will send notification')
+			else:
+				print('[INFO] Balance changes detected, notification disabled')
 		else:
 			print('[INFO] No balance changes detected')
 
-	if balance_changed:
+	if balance_changed and notify_on_balance_change:
 		for i, account in enumerate(accounts):
 			account_key = f'account_{i + 1}'
 			if account_key in account_check_in_details:
@@ -672,7 +686,7 @@ async def main():
 		notify.push_message('AnyRouter Check-in Alert', notify_content, msg_type='text')
 		print('[NOTIFY] Notification sent due to failures or balance changes')
 	else:
-		print('[INFO] All accounts successful and no balance changes detected, notification skipped')
+		print('[INFO] No notification needed')
 
 	sys.exit(0 if success_count > 0 else 1)
 
